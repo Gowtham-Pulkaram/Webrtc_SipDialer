@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JsSIP FreeSWITCH WebRTC Client</title>
+    <script src="https://jssip.net/download/releases/jssip-3.10.0.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 0;
+            max-width: 480px;
+            width: 100%;
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 30px;
+            text-align: center;
+            color: white;
+        }
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        .user-info {
+            background: rgba(255,255,255,0.2);
+            padding: 12px 20px;
+            border-radius: 25px;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+        .user-info .dot {
+            width: 8px;
+            height: 8px;
+            background: #10b981;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .content {
+            padding: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            color: #555;
+            margin-bottom: 8px;
+            font-weight: 500;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 15px;
+            transition: all 0.3s;
+            background: #f9fafb;
+        }
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+        }
+        button {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+        .btn-success:hover:not(:disabled) {
+            background: #059669;
+            transform: translateY(-2px);
+        }
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+        .btn-danger:hover:not(:disabled) {
+            background: #dc2626;
+            transform: translateY(-2px);
+        }
+        .btn-warning {
+            background: #f59e0b;
+            color: white;
+        }
+        .btn-warning:hover:not(:disabled) {
+            background: #d97706;
+        }
+        .btn-secondary {
+            background: #6366f1;
+            color: white;
+        }
+        .btn-secondary:hover:not(:disabled) {
+            background: #4f46e5;
+        }
+        .btn-outline {
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+        .btn-outline:hover:not(:disabled) {
+            background: #667eea;
+            color: white;
+        }
+        .controls-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .hidden { display: none !important; }
+        
+        audio { display: none; }
+        
+        .status-card {
+            background: #f9fafb;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .status-card .status-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+        .status-card .status-text {
+            font-size: 18px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 5px;
+        }
+        .status-card .status-detail {
+            font-size: 14px;
+            color: #6b7280;
+        }
+        .call-timer {
+            font-family: 'Courier New', monospace;
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+            margin-top: 10px;
+        }
+        .log {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f9fafb;
+            border-radius: 12px;
+            max-height: 180px;
+            overflow-y: auto;
+            font-size: 11px;
+            font-family: 'Courier New', monospace;
+            border: 1px solid #e5e7eb;
+        }
+        .log-entry {
+            padding: 6px 0;
+            border-bottom: 1px solid #e5e7eb;
+            color: #6b7280;
+        }
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+        .log-entry .time {
+            color: #9ca3af;
+            margin-right: 8px;
+        }
+        .divider {
+            height: 1px;
+            background: #e5e7eb;
+            margin: 25px 0;
+        }
+        .input-with-icon {
+            position: relative;
+        }
+        .input-with-icon input {
+            padding-left: 45px;
+        }
+        .input-with-icon .icon {
+            position: absolute;
+            left: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 18px;
+            color: #9ca3af;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📞 WebRTC Phone</h1>
+            <div class="user-info hidden" id="userInfo">
+                <span class="dot"></span>
+                <span id="registeredUser"></span>
+            </div>
+        </div>
+
+        <div class="content">
+            <!-- Registration Form -->
+            <div id="registerForm">
+                <div class="form-group">
+                    <label>WebSocket Server</label>
+                    <input type="text" id="wsServer" value="wss://your-freeswitch.com:7443" placeholder="wss://your-server:7443">
+                </div>
+                <div class="form-group">
+                    <label>SIP Extension</label>
+                    <div class="input-with-icon">
+                        <span class="icon">👤</span>
+                        <input type="text" id="sipUri" value="1000@your-domain.com" placeholder="1000@domain.com">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <div class="input-with-icon">
+                        <span class="icon">🔒</span>
+                        <input type="password" id="password" value="" placeholder="Enter password">
+                    </div>
+                </div>
+                <button class="btn-primary" onclick="register()">
+                    <span>🚀</span> Connect & Register
+                </button>
+            </div>
+
+            <!-- Registered View -->
+            <div id="registeredView" class="hidden">
+                <!-- Status Card -->
+                <div class="status-card" id="statusCard">
+                    <div class="status-icon" id="statusIcon">📱</div>
+                    <div class="status-text" id="statusText">Ready to call</div>
+                    <div class="status-detail" id="statusDetail">Enter a number below</div>
+                    <div class="call-timer hidden" id="callTimer">00:00</div>
+                </div>
+
+                <!-- Make Call Section -->
+                <div id="makeCallSection">
+                    <div class="form-group">
+                        <label>Dial Number</label>
+                        <div class="input-with-icon">
+                            <span class="icon">📞</span>
+                            <input type="text" id="callNumber" placeholder="Enter extension or number">
+                        </div>
+                    </div>
+                    <button class="btn-success" onclick="makeCall()">
+                        <span>📞</span> Make Call
+                    </button>
+                </div>
+
+                <!-- Incoming Call Section -->
+                <div id="incomingCallSection" class="hidden">
+                    <button class="btn-success" onclick="answerCall()">
+                        <span>📞</span> Answer Call
+                    </button>
+                    <button class="btn-danger" onclick="rejectCall()">
+                        <span>✖️</span> Reject
+                    </button>
+                </div>
+
+                <!-- Active Call Controls -->
+                <div id="activeCallSection" class="hidden">
+                    <div class="controls-grid">
+                        <button class="btn-warning" id="holdBtn" onclick="toggleHold()">
+                            <span>⏸️</span> Hold
+                        </button>
+                        <button class="btn-secondary" id="muteBtn" onclick="toggleMute()">
+                            <span>🔇</span> Mute
+                        </button>
+                    </div>
+                    <button class="btn-danger" onclick="hangup()">
+                        <span>📴</span> End Call
+                    </button>
+                </div>
+
+                <div class="divider"></div>
+
+                <button class="btn-outline" onclick="unregister()">
+                    <span>🔌</span> Disconnect
+                </button>
+            </div>
+
+            <!-- Activity Log -->
+            <div class="log" id="log">
+                <div class="log-entry">
+                    <span class="time">--:--:--</span>
+                    <span>Ready to connect...</span>
+                </div>
+            </div>
+        </div>
+
+        <audio id="remoteAudio" autoplay></audio>
+        <audio id="localAudio" autoplay muted></audio>
+    </div>
+
+    <script>
+        let ua, currentSession;
+        let isOnHold = false;
+        let isMuted = false;
+        let callStartTime = null;
+        let callTimerInterval = null;
+        let localMediaStream = null;
+
+        function log(msg) {
+            const logDiv = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            const time = new Date().toLocaleTimeString();
+            entry.innerHTML = `<span class="time">${time}</span><span>${msg}</span>`;
+            logDiv.insertBefore(entry, logDiv.firstChild);
+        }
+
+        function updateStatus(icon, text, detail = '') {
+            document.getElementById('statusIcon').textContent = icon;
+            document.getElementById('statusText').textContent = text;
+            document.getElementById('statusDetail').textContent = detail;
+        }
+
+        function startCallTimer() {
+            callStartTime = Date.now();
+            document.getElementById('callTimer').classList.remove('hidden');
+            
+            callTimerInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - callStartTime) / 1000);
+                const minutes = Math.floor(elapsed / 60).toString().padStart(2, '0');
+                const seconds = (elapsed % 60).toString().padStart(2, '0');
+                document.getElementById('callTimer').textContent = `${minutes}:${seconds}`;
+            }, 1000);
+        }
+
+        function stopCallTimer() {
+            if (callTimerInterval) {
+                clearInterval(callTimerInterval);
+                callTimerInterval = null;
+            }
+            document.getElementById('callTimer').classList.add('hidden');
+        }
+
+        function showSection(section) {
+            document.getElementById('makeCallSection').classList.add('hidden');
+            document.getElementById('incomingCallSection').classList.add('hidden');
+            document.getElementById('activeCallSection').classList.add('hidden');
+            
+            if (section) {
+                document.getElementById(section).classList.remove('hidden');
+            }
+        }
+
+        function register() {
+            const wsServer = document.getElementById('wsServer').value;
+            const sipUri = document.getElementById('sipUri').value;
+            const password = document.getElementById('password').value;
+
+            if (!wsServer || !sipUri || !password) {
+                alert('Please fill in all fields');
+                return;
+            }
+
+            const socket = new JsSIP.WebSocketInterface(wsServer);
+            
+            const configuration = {
+                sockets: [socket],
+                uri: 'sip:' + sipUri,
+                password: password,
+                register: true,
+                session_timers: false
+            };
+
+            ua = new JsSIP.UA(configuration);
+
+            ua.on('connecting', () => {
+                log('Connecting to server...');
+            });
+
+            ua.on('connected', () => {
+                log('Connected to WebSocket');
+            });
+
+            ua.on('disconnected', () => {
+                log('Disconnected from server');
+                unregister();
+            });
+
+            ua.on('registered', () => {
+                log('Successfully registered!');
+                document.getElementById('registerForm').classList.add('hidden');
+                document.getElementById('registeredView').classList.remove('hidden');
+                document.getElementById('userInfo').classList.remove('hidden');
+                document.getElementById('registeredUser').textContent = sipUri.split('@')[0];
+                showSection('makeCallSection');
+                updateStatus('✅', 'Ready to call', 'Enter a number to dial');
+                
+                // Request microphone permission once during registration
+                requestMicrophoneAccess();
+            });
+
+            ua.on('registrationFailed', (e) => {
+                log('Registration failed: ' + e.cause);
+                alert('Registration failed: ' + e.cause);
+            });
+
+            ua.on('newRTCSession', (e) => {
+                const session = e.session;
+                
+                if (session.direction === 'incoming') {
+                    const callerNumber = session.remote_identity.uri.user;
+                    log('Incoming call from: ' + callerNumber);
+                    currentSession = session;
+                    updateStatus('📞', 'Incoming Call', 'From: ' + callerNumber);
+                    showSection('incomingCallSection');
+                    setupSessionHandlers(session);
+                }
+            });
+
+            ua.start();
+        }
+
+        function unregister() {
+            if (currentSession) {
+                currentSession.terminate();
+            }
+            
+            if (ua) {
+                ua.stop();
+                ua = null;
+            }
+            
+            // Stop and release media stream
+            if (localMediaStream) {
+                localMediaStream.getTracks().forEach(track => track.stop());
+                localMediaStream = null;
+            }
+            
+            document.getElementById('registerForm').classList.remove('hidden');
+            document.getElementById('registeredView').classList.add('hidden');
+            document.getElementById('userInfo').classList.add('hidden');
+            updateStatus('📱', 'Ready to call', '');
+            stopCallTimer();
+            resetCallControls();
+            log('Unregistered successfully');
+        }
+
+        async function requestMicrophoneAccess() {
+            try {
+                localMediaStream = await navigator.mediaDevices.getUserMedia({ 
+                    audio: true, 
+                    video: false 
+                });
+                log('Microphone access granted');
+            } catch (error) {
+                log('Microphone access denied: ' + error.message);
+                alert('Microphone access is required for calls. Please allow microphone access.');
+            }
+        }
+
+        function makeCall() {
+            const number = document.getElementById('callNumber').value;
+            if (!number) {
+                alert('Please enter a number');
+                return;
+            }
+
+            const eventHandlers = {
+                progress: () => {
+                    log('Calling ' + number + '...');
+                    updateStatus('📞', 'Calling...', number);
+                },
+                failed: (e) => {
+                    log('Call failed: ' + e.cause);
+                    updateStatus('❌', 'Call Failed', e.cause);
+                    showSection('makeCallSection');
+                    stopCallTimer();
+                },
+                ended: () => {
+                    log('Call ended');
+                    updateStatus('✅', 'Ready to call', 'Enter a number to dial');
+                    showSection('makeCallSection');
+                    stopCallTimer();
+                },
+                confirmed: () => {
+                    log('Call connected');
+                    updateStatus('📞', 'Connected', number);
+                    showSection('activeCallSection');
+                    startCallTimer();
+                }
+            };
+
+            const options = {
+                eventHandlers: eventHandlers,
+                mediaConstraints: { audio: true, video: false },
+                mediaStream: localMediaStream, // Use pre-acquired stream
+                pcConfig: {
+                    iceServers: [
+                        { urls: ['stun:stun.l.google.com:19302'] }
+                    ]
+                }
+            };
+
+            currentSession = ua.call('sip:' + number + '@' + document.getElementById('sipUri').value.split('@')[1], options);
+            setupSessionHandlers(currentSession);
+            showSection(null);
+        }
+
+        function answerCall() {
+            if (currentSession) {
+                const options = {
+                    mediaConstraints: { audio: true, video: false },
+                    mediaStream: localMediaStream, // Use pre-acquired stream
+                    pcConfig: {
+                        iceServers: [
+                            { urls: ['stun:stun.l.google.com:19302'] }
+                        ]
+                    }
+                };
+                
+                currentSession.answer(options);
+                log('Answering call...');
+                updateStatus('📞', 'Connected', 'In call');
+                showSection('activeCallSection');
+                startCallTimer();
+            }
+        }
+
+        function rejectCall() {
+            if (currentSession) {
+                currentSession.terminate();
+                log('Call rejected');
+                updateStatus('✅', 'Ready to call', 'Enter a number to dial');
+                showSection('makeCallSection');
+            }
+        }
+
+        function hangup() {
+            if (currentSession) {
+                currentSession.terminate();
+                log('Call ended');
+                updateStatus('✅', 'Ready to call', 'Enter a number to dial');
+                showSection('makeCallSection');
+                stopCallTimer();
+                resetCallControls();
+            }
+        }
+
+        function toggleHold() {
+            if (!currentSession) return;
+
+            if (isOnHold) {
+                currentSession.unhold({
+                    useUpdate: true
+                });
+                log('Call resumed');
+                updateStatus('📞', 'Connected', 'Call active');
+                document.getElementById('holdBtn').innerHTML = '<span>⏸️</span> Hold';
+                isOnHold = false;
+            } else {
+                currentSession.hold({
+                    useUpdate: true
+                });
+                log('Call on hold');
+                updateStatus('⏸️', 'On Hold', 'Call paused');
+                document.getElementById('holdBtn').innerHTML = '<span>▶️</span> Resume';
+                isOnHold = true;
+            }
+        }
+
+        function toggleMute() {
+            if (!currentSession) return;
+
+            if (isMuted) {
+                currentSession.unmute();
+                log('Microphone unmuted');
+                document.getElementById('muteBtn').innerHTML = '<span>🔇</span> Mute';
+                isMuted = false;
+            } else {
+                currentSession.mute();
+                log('Microphone muted');
+                document.getElementById('muteBtn').innerHTML = '<span>🔊</span> Unmute';
+                isMuted = true;
+            }
+        }
+
+        function resetCallControls() {
+            isOnHold = false;
+            isMuted = false;
+            document.getElementById('holdBtn').innerHTML = '<span>⏸️</span> Hold';
+            document.getElementById('muteBtn').innerHTML = '<span>🔇</span> Mute';
+        }
+
+        function setupSessionHandlers(session) {
+            session.on('peerconnection', (e) => {
+                const pc = e.peerconnection;
+                
+                pc.addEventListener('track', (event) => {
+                    log('Audio track received');
+                    if (event.track.kind === 'audio') {
+                        const remoteAudio = document.getElementById('remoteAudio');
+                        
+                        if (event.streams && event.streams[0]) {
+                            remoteAudio.srcObject = event.streams[0];
+                        } else {
+                            if (!remoteAudio.srcObject) {
+                                remoteAudio.srcObject = new MediaStream();
+                            }
+                            remoteAudio.srcObject.addTrack(event.track);
+                        }
+                        
+                        remoteAudio.play().catch(e => {
+                            log('Audio play error: ' + e.message);
+                        });
+                    }
+                });
+
+                pc.addEventListener('addstream', (event) => {
+                    document.getElementById('remoteAudio').srcObject = event.stream;
+                    document.getElementById('remoteAudio').play().catch(e => {
+                        log('Audio play error: ' + e.message);
+                    });
+                });
+            });
+
+            session.on('accepted', () => {
+                const connection = session.connection;
+                
+                if (connection) {
+                    const localStream = connection.getLocalStreams()[0];
+                    if (localStream) {
+                        document.getElementById('localAudio').srcObject = localStream;
+                    }
+
+                    const remoteStream = connection.getRemoteStreams()[0];
+                    if (remoteStream) {
+                        const remoteAudio = document.getElementById('remoteAudio');
+                        remoteAudio.srcObject = remoteStream;
+                        remoteAudio.play().catch(e => {
+                            log('Audio play error: ' + e.message);
+                        });
+                    }
+                }
+            });
+
+            session.on('ended', () => {
+                log('Call ended');
+                updateStatus('✅', 'Ready to call', 'Enter a number to dial');
+                showSection('makeCallSection');
+                stopCallTimer();
+                resetCallControls();
+                document.getElementById('remoteAudio').srcObject = null;
+                document.getElementById('localAudio').srcObject = null;
+            });
+
+            session.on('failed', () => {
+                log('Call failed');
+                updateStatus('✅', 'Ready to call', 'Enter a number to dial');
+                showSection('makeCallSection');
+                stopCallTimer();
+                resetCallControls();
+                document.getElementById('remoteAudio').srcObject = null;
+                document.getElementById('localAudio').srcObject = null;
+            });
+
+            session.on('hold', (data) => {
+                log('Call on hold (' + data.originator + ')');
+                if (data.originator === 'remote') {
+                    updateStatus('⏸️', 'On Hold', 'Remote party paused call');
+                }
+            });
+
+            session.on('unhold', (data) => {
+                log('Call resumed (' + data.originator + ')');
+                if (data.originator === 'remote') {
+                    updateStatus('📞', 'Connected', 'Call active');
+                }
+            });
+        }
+    </script>
+</body>
+</html>
